@@ -30,6 +30,7 @@ const getDaysLeft = (deadline) => {
 const TaskCard = ({ task, onUpdate, onDelete }) => {
   const [editing, setEditing] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const navigate = useNavigate();
 
   const pCfg = priorityConfig[task.priority] || priorityConfig.medium;
@@ -49,10 +50,14 @@ const TaskCard = ({ task, onUpdate, onDelete }) => {
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm(`Delete "${task.title}"?`)) return;
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
     try {
       await deleteTask(task._id);
+      setShowDeleteConfirm(false);
       onDelete();
       toast.success('Task deleted');
     } catch {
@@ -95,11 +100,29 @@ const TaskCard = ({ task, onUpdate, onDelete }) => {
             </button>
           )}
           <button className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}><Edit2 size={13}/> Edit</button>
-          <button className="btn btn-ghost btn-sm text-danger" onClick={handleDelete}><Trash2 size={13}/> Delete</button>
+          <button className="btn btn-ghost btn-sm text-danger" onClick={handleDeleteClick}><Trash2 size={13}/> Delete</button>
         </div>
       </div>
 
-      {showModal => editing && (
+      {showDeleteConfirm && (
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setShowDeleteConfirm(false)}>
+          <div className="modal" style={{ maxWidth: '400px', padding: '24px' }}>
+            <div className="modal-header" style={{ marginBottom: '16px' }}>
+              <h2 className="modal-title" style={{ color: 'var(--accent-red)' }}>Delete Task</h2>
+              <button className="modal-close" onClick={() => setShowDeleteConfirm(false)}>✕</button>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', fontSize: '14px' }}>
+              Are you sure you want to delete <strong>"{task.title}"</strong>? This action cannot be undone.
+            </p>
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
+              <button className="btn btn-danger" onClick={confirmDelete}>Delete Task</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editing && (
         <TaskModal
           task={task}
           onClose={() => setEditing(false)}

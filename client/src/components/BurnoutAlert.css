@@ -1,0 +1,15 @@
+.burnout-alert { border-radius: var(--radius-md); padding: 16px 20px; margin-bottom: 24px; animation: slideDown 0.3s ease; border-left: 4px solid; background: var(--bg-card); box-shadow: var(--shadow-card); }
+.burnout-high { border-left-color: var(--accent-red); border-top: 1px solid rgba(187,107,102,0.1); border-right: 1px solid rgba(187,107,102,0.1); border-bottom: 1px solid rgba(187,107,102,0.1); }
+.burnout-moderate { border-left-color: var(--accent-yellow); border-top: 1px solid rgba(209,165,84,0.1); border-right: 1px solid rgba(209,165,84,0.1); border-bottom: 1px solid rgba(209,165,84,0.1); }
+.burnout-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+.burnout-high .burnout-icon { color: var(--accent-red); }
+.burnout-moderate .burnout-icon { color: var(--accent-yellow); }
+.burnout-title-block { flex: 1; }
+.burnout-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+.burnout-subtitle { font-size: 13px; color: var(--text-secondary); line-height: 1.4; }
+.burnout-body { margin-left: 36px; display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--border-color); padding-top: 12px;}
+.burnout-list { font-size: 13px; }
+.list-label { font-weight: 600; color: var(--text-primary); margin-bottom: 6px; display: flex; align-items: center; gap: 6px;}
+.burnout-list ul { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.burnout-list li { color: var(--text-secondary); padding-left: 12px; position: relative; }
+.burnout-list li::before { content: '•'; position: absolute; left: 0; color: var(--text-muted); }

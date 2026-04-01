@@ -1,29 +1,60 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Play, Pause, RotateCcw, Brain, Coffee, ArrowLeft } from 'lucide-react';
+import { Play, Pause, RotateCcw, ArrowLeft, Clock, Timer as TimerIcon, StopCircle } from 'lucide-react';
 import './Timer.css';
-
-const WORK_TIME = 25 * 60;
-const BREAK_TIME = 5 * 60;
 
 const Timer = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const task = location.state?.task || null;
 
-  const [mode, setMode] = useState('work'); // 'work' or 'break'
-  const [timeLeft, setTimeLeft] = useState(WORK_TIME);
+  // Modes: 'task' (preset countdown), 'timer' (custom countdown), 'stopwatch' (count up)
+  const initialMode = task ? 'task' : 'timer';
+  const [mode, setMode] = useState(initialMode);
+  
+  // Custom Timer state
+  const [customMinutes, setCustomMinutes] = useState(25);
+  
+  // Base time logic
+  const getInitialTime = () => {
+    if (task) return Math.floor(task.studyHours * 3600); // hours to seconds
+    if (mode === 'stopwatch') return 0;
+    return customMinutes * 60; // default 25 mins
+  };
+
+  const [time, setTime] = useState(getInitialTime());
   const [isActive, setIsActive] = useState(false);
   const intervalRef = useRef(null);
+  
+  // Store the total baseline time to calculate circular progress
+  const [totalTime, setTotalTime] = useState(getInitialTime());
 
+  // Handle mode switches
+  const switchMode = (newMode) => {
+    setIsActive(false);
+    setMode(newMode);
+  };
+
+  // Re-sync time when mode or custom minutes change (only if not active)
+  useEffect(() => {
+    if (!isActive) {
+      const init = getInitialTime();
+      setTime(init);
+      if (mode !== 'stopwatch') setTotalTime(init);
+    }
+  }, [mode, customMinutes, task]);
+
+  // Main Timer loop
   useEffect(() => {
     if (isActive) {
       intervalRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
+        setTime((prev) => {
+          if (mode === 'stopwatch') return prev + 1; // Count up
+          
+          // Count down
           if (prev <= 1) {
             clearInterval(intervalRef.current);
             setIsActive(false);
-            // Play a sound or show notification here in a real app
             return 0;
           }
           return prev - 1;
@@ -33,81 +64,108 @@ const Timer = () => {
       clearInterval(intervalRef.current);
     }
     return () => clearInterval(intervalRef.current);
-  }, [isActive]);
+  }, [isActive, mode]);
 
   const toggleTimer = () => setIsActive(!isActive);
 
   const resetTimer = () => {
     setIsActive(false);
-    setTimeLeft(mode === 'work' ? WORK_TIME : BREAK_TIME);
-  };
-
-  const switchMode = (newMode) => {
-    setMode(newMode);
-    setIsActive(false);
-    setTimeLeft(newMode === 'work' ? WORK_TIME : BREAK_TIME);
+    const init = getInitialTime();
+    setTime(init);
+    if (mode !== 'stopwatch') setTotalTime(init);
   };
 
   const formatTime = (seconds) => {
-    const m = Math.floor(seconds / 60);
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
     const s = seconds % 60;
+    
+    if (h > 0) {
+      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const progress = mode === 'work' 
-    ? ((WORK_TIME - timeLeft) / WORK_TIME) * 100 
-    : ((BREAK_TIME - timeLeft) / BREAK_TIME) * 100;
+  const currentTheme = mode === 'stopwatch' ? '--accent-green' : '--accent-orange';
+  
+  // Calculate progress circle (stopwatch fills up every 60s as a cool visual, countdown goes backwards)
+  let progress = 0;
+  if (mode === 'stopwatch') {
+    progress = (time % 60) / 60 * 100; // Loop every minute
+  } else {
+    progress = totalTime > 0 ? ((totalTime - time) / totalTime) * 100 : 0;
+  }
 
   return (
     <div className="main-content fade-in timer-page">
       {task && (
         <button className="btn btn-ghost btn-sm back-nav" onClick={() => navigate(-1)}>
-          <ArrowLeft size={16}/> Back
+          <ArrowLeft size={16}/> Back to Tasks
         </button>
       )}
       
       <div className="timer-container glass-card">
-        {task && (
+        {task ? (
           <div className="timer-task-context">
-            <span className="context-label">Focusing on:</span>
+            <span className="context-label">Task Focus Target: {task.studyHours} hrs</span>
             <h2 className="context-title">{task.title}</h2>
+          </div>
+        ) : (
+          <div className="timer-modes">
+            <button 
+              className={`mode-btn ${mode === 'timer' ? 'active timer-active' : ''}`}
+              onClick={() => switchMode('timer')}
+              disabled={isActive}
+            >
+              <TimerIcon size={16}/> Countdown
+            </button>
+            <button 
+              className={`mode-btn ${mode === 'stopwatch' ? 'active stopwatch-active' : ''}`}
+              onClick={() => switchMode('stopwatch')}
+              disabled={isActive}
+            >
+              <StopCircle size={16}/> Stopwatch
+            </button>
           </div>
         )}
 
-        <div className="timer-modes">
-          <button 
-            className={`mode-btn ${mode === 'work' ? 'active work-active' : ''}`}
-            onClick={() => switchMode('work')}
-          >
-            <Brain size={16}/> Pomodoro
-          </button>
-          <button 
-            className={`mode-btn ${mode === 'break' ? 'active break-active' : ''}`}
-            onClick={() => switchMode('break')}
-          >
-            <Coffee size={16}/> Short Break
-          </button>
-        </div>
+        {!task && mode === 'timer' && !isActive && time === totalTime && (
+          <div className="custom-time-input">
+            <label>Set Minutes:</label>
+            <input 
+              type="number" 
+              min="1" 
+              max="999" 
+              value={customMinutes} 
+              onChange={(e) => setCustomMinutes(Number(e.target.value) || 1)}
+              className="form-input time-setter"
+            />
+          </div>
+        )}
 
         <div className="timer-display-wrapper">
           <div className="timer-circle" style={{ 
-            background: `conic-gradient(var(${mode === 'work' ? '--accent-orange' : '--accent-green'}) ${progress}%, var(--bg-secondary) ${progress}%)` 
+            background: `conic-gradient(var(${currentTheme}) ${progress}%, var(--bg-secondary) ${progress}%)` 
           }}>
             <div className="timer-inner">
-              <span className="time">{formatTime(timeLeft)}</span>
-              <span className="time-sub">{mode === 'work' ? 'Focus Time' : 'Relax'}</span>
+              <span className={`time ${formatTime(time).length > 5 ? 'time-long' : ''}`}>
+                {formatTime(time)}
+              </span>
+              <span className="time-sub">
+                {mode === 'stopwatch' ? 'Elapsed Time' : 'Remaining'}
+              </span>
             </div>
           </div>
         </div>
 
         <div className="timer-controls">
           <button 
-            className={`btn btn-icon timer-main-btn ${isActive ? 'timer-pause' : mode === 'work' ? 'timer-start-work' : 'timer-start-break'}`}
+            className={`btn btn-icon timer-main-btn ${isActive ? 'timer-pause' : mode === 'stopwatch' ? 'timer-start-sw' : 'timer-start-cd'}`}
             onClick={toggleTimer}
           >
             {isActive ? <Pause size={24}/> : <Play size={24} style={{marginLeft: '4px'}} />}
           </button>
-          <button className="btn btn-icon timer-reset-btn" onClick={resetTimer} title="Reset Timer">
+          <button className="btn btn-icon timer-reset-btn" onClick={resetTimer} title="Reset">
             <RotateCcw size={20}/>
           </button>
         </div>

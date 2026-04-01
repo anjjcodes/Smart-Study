@@ -33,7 +33,7 @@ const clientBuildPath = path.join(__dirname, '../client/dist');
 app.use(express.static(clientBuildPath));
 
 // Catch-all route to serve the React index.html for SPA routing (must be placed after all API logic and static files!)
-app.get('*', (req, res) => {
+app.get(/.*/, (req, res) => {
   res.sendFile(path.join(clientBuildPath, 'index.html'));
 });
 

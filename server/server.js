@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 
 const authRoutes = require('./routes/auth');
 const taskRoutes = require('./routes/tasks');
@@ -27,10 +28,16 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Smart Study API is running!' });
 });
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ message: 'Route not found.' });
+// Serve static frontend files automatically from Docker/production build
+const clientBuildPath = path.join(__dirname, '../client/dist');
+app.use(express.static(clientBuildPath));
+
+// Catch-all route to serve the React index.html for SPA routing (must be placed after all API logic and static files!)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(clientBuildPath, 'index.html'));
 });
+
+// Note: Removed the standard 404 handler because the React app handles 404 views.
 
 // Error handler
 app.use((err, req, res, next) => {

@@ -1,0 +1,14 @@
+node_modules/
+.npm/
+client/node_modules/
+server/node_modules/
+client/dist/
+
+.env
+.DS_Store
+*.log
+.vscode/
+
+# Ignore local git files
+.git/
+.gitignore

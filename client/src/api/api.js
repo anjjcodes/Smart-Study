@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+// When running in Vite dev server (PROD is false), we fetch data from localhost:5000.
+// When compiled for production in Docker (PROD is true), the frontend and API share the exact same origin.
 const API = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: import.meta.env.PROD ? '/api' : 'http://localhost:5000/api',
 });
 
 // Attach JWT token to every request
